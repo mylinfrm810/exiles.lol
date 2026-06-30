@@ -5,7 +5,7 @@ const { signToken } = require('../auth');
 
 const router = express.Router();
 
-const USERNAME_RE = /^[a-zA-Z0-9_]{3,20}$/;
+const USERNAME_RE = /^[a-zA-Z0-9_]{2,20}$/;
 
 router.post('/register', async (req, res) => {
   try {
