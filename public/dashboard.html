@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Dashboard — biolink</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:'Segoe UI',sans-serif; background:#0b0b12; color:#eee; }
+  header { display:flex; justify-content:space-between; align-items:center; padding:1em 2em; border-bottom:1px solid #222; }
+  header a { color:#7c3aed; text-decoration:none; font-weight:600; }
+  main { max-width:700px; margin:2em auto; padding:0 1.5em; }
+  section { background:#15151f; border:1px solid #25252f; border-radius:14px; padding:1.5em; margin-bottom:1.5em; }
+  h3 { margin-top:0; }
+  label { display:block; font-size:0.85em; color:#999; margin-top:0.8em; }
+  input, textarea, select { width:100%; padding:0.6em; border-radius:8px; border:1px solid #333; background:#0e0e16; color:#fff; margin-top:0.3em; }
+  textarea { resize:vertical; min-height:70px; }
+  button { padding:0.6em 1.2em; border:none; border-radius:8px; background:#7c3aed; color:#fff; font-weight:600; cursor:pointer; margin-top:1em; }
+  button.secondary { background:#2a2a36; }
+  .link-row { display:flex; gap:0.5em; align-items:center; margin-top:0.5em; }
+  .link-row span { flex:1; font-size:0.9em; color:#ccc; }
+  .link-row button { margin:0; padding:0.3em 0.7em; background:#3a1d1d; color:#f87171; }
+  .msg { font-size:0.85em; color:#4ade80; min-height:1.2em; }
+  .preview-link { display:block; margin-top:0.5em; color:#06b6d4; }
+</style>
+</head>
+<body>
+<header>
+  <strong>biolink dashboard</strong>
+  <div>
+    <a id="viewLink" href="#" target="_blank" style="margin-right:1.5em;">View my page →</a>
+    <a href="#" id="logout">Log out</a>
+  </div>
+</header>
+<main>
+  <section>
+    <h3>Profile</h3>
+    <label>Display name</label>
+    <input id="display_name">
+    <label>Bio</label>
+    <textarea id="bio"></textarea>
+    <label>Accent color</label>
+    <input id="accent_color" type="color">
+    <label>Cursor effect</label>
+    <select id="cursor_effect">
+      <option value="trail">Particle trail</option>
+      <option value="dot">Glow dot</option>
+      <option value="none">None (default cursor)</option>
+    </select>
+    <label>Background type</label>
+    <select id="background_type">
+      <option value="particles">Animated particles (no upload needed)</option>
+      <option value="image">Custom image</option>
+      <option value="video">Custom video</option>
+    </select>
+    <label>Discord User ID (for presence widget, optional)</label>
+    <input id="discord_id" placeholder="e.g. 123456789012345678">
+    <button id="saveProfile">Save profile</button>
+    <div class="msg" id="profileMsg"></div>
+  </section>
+
+  <section>
+    <h3>Avatar</h3>
+    <input type="file" id="avatarFile" accept="image/*">
+    <button id="uploadAvatar">Upload avatar</button>
+    <div class="msg" id="avatarMsg"></div>
+  </section>
+
+  <section>
+    <h3>Background media</h3>
+    <p style="color:#888;font-size:0.85em;">Upload an image or video. This only matters if Background type above is set to image/video.</p>
+    <input type="file" id="bgFile" accept="image/*,video/*">
+    <button id="uploadBg">Upload background</button>
+    <div class="msg" id="bgMsg"></div>
+  </section>
+
+  <section>
+    <h3>Profile music</h3>
+    <input type="file" id="audioFile" accept="audio/*">
+    <button id="uploadAudio">Upload track</button>
+    <div class="msg" id="audioMsg"></div>
+  </section>
+
+  <section>
+    <h3>Links</h3>
+    <div id="linksList"></div>
+    <div class="link-row">
+      <input id="linkPlatform" placeholder="Platform (e.g. Twitter)" style="flex:1">
+      <input id="linkUrl" placeholder="https://..." style="flex:2">
+      <button id="addLink" style="background:#7c3aed;color:#fff;">Add</button>
+    </div>
+  </section>
+</main>
+
+<script>
+let me = null;
+
+async function loadMe() {
+  const res = await fetch('/api/profile/me');
+  if (!res.ok) { window.location.href = '/login.html'; return; }
+  const data = await res.json();
+  me = data.user;
+  document.getElementById('display_name').value = me.display_name || '';
+  document.getElementById('bio').value = me.bio || '';
+  document.getElementById('accent_color').value = me.accent_color || '#7c3aed';
+  document.getElementById('cursor_effect').value = me.cursor_effect || 'trail';
+  document.getElementById('background_type').value = me.background_type || 'particles';
+  document.getElementById('discord_id').value = me.discord_id || '';
+  document.getElementById('viewLink').href = '/' + me.username;
+  renderLinks(data.links);
+}
+
+function renderLinks(links) {
+  const el = document.getElementById('linksList');
+  el.innerHTML = '';
+  links.forEach(l => {
+    const row = document.createElement('div');
+    row.className = 'link-row';
+    row.innerHTML = `<span>${l.platform}: ${l.url}</span><button data-id="${l.id}">Remove</button>`;
+    row.querySelector('button').onclick = async () => {
+      await fetch('/api/profile/me/links/' + l.id, { method:'DELETE' });
+      loadMe();
+    };
+    el.appendChild(row);
+  });
+}
+
+document.getElementById('saveProfile').onclick = async () => {
+  const body = {
+    display_name: document.getElementById('display_name').value,
+    bio: document.getElementById('bio').value,
+    accent_color: document.getElementById('accent_color').value,
+    cursor_effect: document.getElementById('cursor_effect').value,
+    background_type: document.getElementById('background_type').value,
+    discord_id: document.getElementById('discord_id').value
+  };
+  const res = await fetch('/api/profile/me', { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+  document.getElementById('profileMsg').textContent = res.ok ? 'Saved!' : 'Error saving';
+};
+
+document.getElementById('uploadAvatar').onclick = async () => {
+  const f = document.getElementById('avatarFile').files[0];
+  if (!f) return;
+  const fd = new FormData(); fd.append('avatar', f);
+  const res = await fetch('/api/profile/me/avatar', { method:'POST', body: fd });
+  const json = await res.json();
+  document.getElementById('avatarMsg').textContent = res.ok ? 'Uploaded!' : json.error;
+};
+
+document.getElementById('uploadBg').onclick = async () => {
+  const f = document.getElementById('bgFile').files[0];
+  if (!f) return;
+  const fd = new FormData(); fd.append('background', f);
+  const res = await fetch('/api/profile/me/background', { method:'POST', body: fd });
+  const json = await res.json();
+  document.getElementById('bgMsg').textContent = res.ok ? 'Uploaded!' : json.error;
+};
+
+document.getElementById('uploadAudio').onclick = async () => {
+  const f = document.getElementById('audioFile').files[0];
+  if (!f) return;
+  const fd = new FormData(); fd.append('audio', f);
+  const res = await fetch('/api/profile/me/audio', { method:'POST', body: fd });
+  const json = await res.json();
+  document.getElementById('audioMsg').textContent = res.ok ? 'Uploaded!' : json.error;
+};
+
+document.getElementById('addLink').onclick = async () => {
+  const platform = document.getElementById('linkPlatform').value.trim();
+  const url = document.getElementById('linkUrl').value.trim();
+  if (!platform || !url) return;
+  await fetch('/api/profile/me/links', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({platform, url}) });
+  document.getElementById('linkPlatform').value = '';
+  document.getElementById('linkUrl').value = '';
+  loadMe();
+};
+
+document.getElementById('logout').onclick = async (e) => {
+  e.preventDefault();
+  await fetch('/api/auth/logout', { method:'POST' });
+  window.location.href = '/';
+};
+
+loadMe();
+</script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Log in — biolink</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family:'Segoe UI', sans-serif; background:#0b0b12; color:#eee; height:100vh; display:flex; align-items:center; justify-content:center; }
+  form { background:#15151f; padding:2.5em; border-radius:16px; width:320px; border:1px solid #25252f; }
+  h2 { margin-top:0; }
+  input { width:100%; padding:0.7em; margin:0.4em 0; border-radius:8px; border:1px solid #333; background:#0e0e16; color:#fff; }
+  button { width:100%; padding:0.8em; margin-top:1em; border:none; border-radius:8px; background:#7c3aed; color:#fff; font-weight:600; cursor:pointer; }
+  .err { color:#f87171; font-size:0.85em; min-height:1.2em; }
+  a { color:#7c3aed; }
+</style>
+</head>
+<body>
+<form id="f">
+  <h2>Welcome back</h2>
+  <input name="username" placeholder="username or email" required>
+  <input name="password" type="password" placeholder="password" required>
+  <div class="err" id="err"></div>
+  <button type="submit">Log in</button>
+  <p style="text-align:center;color:#888;font-size:0.9em;">No account? <a href="/register.html">Sign up</a></p>
+</form>
+<script>
+document.getElementById('f').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const data = Object.fromEntries(new FormData(e.target));
+  const res = await fetch('/api/auth/login', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(data)
+  });
+  const json = await res.json();
+  if (!res.ok) { document.getElementById('err').textContent = json.error; return; }
+  window.location.href = '/dashboard';
+});
+</script>
+</body>
+</html>

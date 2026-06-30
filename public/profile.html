@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>profile</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { box-sizing:border-box; }
+  html,body { margin:0; height:100%; font-family:'Segoe UI',sans-serif; background:#000; color:#fff; overflow-x:hidden; }
+  #bgVideo, #bgImage { position:fixed; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:-2; filter:brightness(0.55); }
+  #particleCanvas { position:fixed; top:0; left:0; width:100%; height:100%; z-index:-2; background:#06060c; }
+  #overlay { position:fixed; inset:0; background:rgba(0,0,0,0.25); z-index:-1; }
+  .card { max-width:420px; margin:8vh auto; padding:2em; text-align:center; backdrop-filter:blur(10px); background:rgba(20,20,30,0.55); border-radius:20px; border:1px solid rgba(255,255,255,0.08); }
+  .avatar { width:96px; height:96px; border-radius:50%; object-fit:cover; border:3px solid var(--accent,#7c3aed); box-shadow:0 0 30px var(--accent,#7c3aed); }
+  h1 { margin:0.5em 0 0.1em; font-size:1.6em; }
+  .bio { color:#ddd; font-size:0.95em; margin-bottom:1em; }
+  .views { font-size:0.75em; color:#999; }
+  .links { display:flex; flex-direction:column; gap:0.6em; margin-top:1.2em; }
+  .links a { display:block; padding:0.7em; border-radius:10px; background:rgba(255,255,255,0.07); color:#fff; text-decoration:none; border:1px solid rgba(255,255,255,0.1); transition:background 0.2s; }
+  .links a:hover { background:var(--accent,#7c3aed); }
+  .discord { margin-top:1em; padding:0.8em; border-radius:12px; background:rgba(255,255,255,0.06); font-size:0.85em; text-align:left; display:flex; gap:0.6em; align-items:center; }
+  .dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .musicBtn { position:fixed; bottom:20px; right:20px; width:50px; height:50px; border-radius:50%; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:5; font-size:1.2em; }
+  #cursorDot { position:fixed; width:18px; height:18px; border-radius:50%; pointer-events:none; z-index:99; transform:translate(-50%,-50%); mix-blend-mode:screen; transition:width 0.15s, height 0.15s; }
+  .not-found { text-align:center; margin-top:20vh; color:#888; }
+</style>
+</head>
+<body>
+<canvas id="particleCanvas"></canvas>
+<video id="bgVideo" autoplay loop muted playsinline style="display:none;"></video>
+<img id="bgImage" style="display:none;">
+<div id="overlay"></div>
+
+<div id="content"></div>
+<div class="musicBtn" id="musicBtn" style="display:none;">▶</div>
+<audio id="audioEl" loop></audio>
+
+<script>
+const username = window.location.pathname.slice(1);
+
+function escapeHtml(s){
+  return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+async function init() {
+  const res = await fetch('/api/profile/public/' + encodeURIComponent(username));
+  if (!res.ok) {
+    document.getElementById('content').innerHTML = '<div class="not-found"><h2>Profile not found</h2></div>';
+    return;
+  }
+  const { user, links } = await res.json();
+  document.title = (user.display_name || user.username) + ' — biolink';
+  document.documentElement.style.setProperty('--accent', user.accent_color || '#7c3aed');
+
+  setupBackground(user);
+  setupCursor(user.cursor_effect);
+  setupMusic(user);
+
+  const linksHtml = links.map(l => `<a href="${escapeHtml(l.url)}" target="_blank" rel="noopener">${escapeHtml(l.platform)}</a>`).join('');
+
+  let discordHtml = '';
+  if (user.discord_id) {
+    discordHtml = `<div class="discord" id="discordWidget">Loading Discord status…</div>`;
+  }
+
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      ${user.avatar_url ? `<img class="avatar" src="${user.avatar_url}">` : ''}
+      <h1>${escapeHtml(user.display_name || user.username)}</h1>
+      ${user.bio ? `<div class="bio">${escapeHtml(user.bio)}</div>` : ''}
+      <div class="views">${user.view_count} views</div>
+      ${discordHtml}
+      <div class="links">${linksHtml}</div>
+    </div>
+  `;
+
+  if (user.discord_id) loadDiscord(user.discord_id);
+}
+
+async function loadDiscord(discordId) {
+  try {
+    const res = await fetch('/api/profile/discord/' + discordId);
+    const el = document.getElementById('discordWidget');
+    if (!res.ok) { el.style.display = 'none'; return; }
+    const data = await res.json();
+    const statusColors = { online:'#3ba55c', idle:'#faa61a', dnd:'#ed4245', offline:'#747f8d' };
+    const color = statusColors[data.discord_status] || statusColors.offline;
+    const activity = data.activities?.find(a => a.type !== 4)?.name;
+    el.innerHTML = `<div class="dot" style="background:${color}"></div>
+      <div><strong>${escapeHtml(data.discord_user.username)}</strong><br>
+      <span style="color:#aaa;">${activity ? 'Playing ' + escapeHtml(activity) : data.discord_status}</span></div>`;
+  } catch (e) {
+    const el = document.getElementById('discordWidget');
+    if (el) el.style.display = 'none';
+  }
+}
+
+function setupBackground(user) {
+  const canvas = document.getElementById('particleCanvas');
+  const video = document.getElementById('bgVideo');
+  const image = document.getElementById('bgImage');
+
+  if (user.background_type === 'video' && user.background_url) {
+    video.src = user.background_url;
+    video.style.display = 'block';
+    canvas.style.display = 'none';
+  } else if (user.background_type === 'image' && user.background_url) {
+    image.src = user.background_url;
+    image.style.display = 'block';
+    canvas.style.display = 'none';
+  } else {
+    runParticles(canvas, user.accent_color || '#7c3aed');
+  }
+}
+
+function runParticles(canvas, accent) {
+  const ctx = canvas.getContext('2d');
+  let w, h, particles;
+  function resize() {
+    w = canvas.width = window.innerWidth;
+    h = canvas.height = window.innerHeight;
+  }
+  function makeParticles() {
+    const count = Math.floor((w * h) / 9000);
+    particles = Array.from({length: count}, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      r: Math.random() * 1.8 + 0.6
+    }));
+  }
+  resize(); makeParticles();
+  window.addEventListener('resize', () => { resize(); makeParticles(); });
+
+  function tick() {
+    ctx.clearRect(0, 0, w, h);
+    ctx.fillStyle = '#06060c';
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = accent;
+    particles.forEach(p => {
+      p.x += p.vx; p.y += p.vy;
+      if (p.x < 0 || p.x > w) p.vx *= -1;
+      if (p.y < 0 || p.y > h) p.vy *= -1;
+      ctx.globalAlpha = 0.7;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    requestAnimationFrame(tick);
+  }
+  tick();
+}
+
+function setupCursor(effect) {
+  if (effect === 'none' || !effect) return;
+  const dot = document.createElement('div');
+  dot.id = 'cursorDot';
+  dot.style.background = 'var(--accent,#7c3aed)';
+  document.body.appendChild(dot);
+
+  if (effect === 'dot') {
+    window.addEventListener('mousemove', e => {
+      dot.style.left = e.clientX + 'px';
+      dot.style.top = e.clientY + 'px';
+    });
+  } else { // trail
+    const trail = [];
+    window.addEventListener('mousemove', e => {
+      trail.push({x: e.clientX, y: e.clientY, life: 1});
+    });
+    function animateTrail() {
+      // reuse dot as head, spawn ghost divs sparingly
+      if (trail.length) {
+        const last = trail[trail.length - 1];
+        dot.style.left = last.x + 'px';
+        dot.style.top = last.y + 'px';
+        if (trail.length > 8) trail.splice(0, trail.length - 8);
+      }
+      requestAnimationFrame(animateTrail);
+    }
+    animateTrail();
+  }
+}
+
+function setupMusic(user) {
+  if (!user.audio_url) return;
+  const audio = document.getElementById('audioEl');
+  const btn = document.getElementById('musicBtn');
+  audio.src = user.audio_url;
+  btn.style.display = 'flex';
+  let playing = false;
+  btn.onclick = () => {
+    if (playing) { audio.pause(); btn.textContent = '▶'; }
+    else { audio.play().catch(()=>{}); btn.textContent = '❚❚'; }
+    playing = !playing;
+  };
+}
+
+init();
+</script>
+</body>
+</html>
