@@ -4,24 +4,57 @@
 <meta charset="UTF-8">
 <title>Dashboard — biolink</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+  :root{
+    --bg:#03050a; --surface:rgba(15,20,34,0.55); --surface-solid:#0d1220;
+    --border:rgba(110,168,255,0.16); --field:rgba(6,9,18,0.7);
+    --accent:#2f6bff; --accent-2:#6ea8ff; --text:#e7ecf7; --muted:#7c8aa8;
+    --danger:#f87171; --success:#4ade80;
+  }
   * { box-sizing:border-box; }
-  body { margin:0; font-family:'Segoe UI',sans-serif; background:#0b0b12; color:#eee; }
-  header { display:flex; justify-content:space-between; align-items:center; padding:1em 2em; border-bottom:1px solid #222; }
-  header a { color:#7c3aed; text-decoration:none; font-weight:600; }
-  main { max-width:700px; margin:2em auto; padding:0 1.5em; }
-  section { background:#15151f; border:1px solid #25252f; border-radius:14px; padding:1.5em; margin-bottom:1.5em; }
-  h3 { margin-top:0; }
-  label { display:block; font-size:0.85em; color:#999; margin-top:0.8em; }
-  input, textarea, select { width:100%; padding:0.6em; border-radius:8px; border:1px solid #333; background:#0e0e16; color:#fff; margin-top:0.3em; }
+  body { margin:0; font-family:'Inter',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; }
+  body::before{
+    content:''; position:fixed; top:-20vw; right:-15vw; width:50vw; height:50vw; border-radius:50%;
+    background:#1b3aff; filter:blur(130px); opacity:0.18; z-index:0; pointer-events:none;
+  }
+  header {
+    position:relative; z-index:1; display:flex; justify-content:space-between; align-items:center;
+    padding:1.1em 2em; border-bottom:1px solid var(--border); background:rgba(4,6,12,0.6); backdrop-filter:blur(10px);
+  }
+  header strong{ font-family:'Space Grotesk',sans-serif; letter-spacing:-0.01em; }
+  header a { color:var(--accent-2); text-decoration:none; font-weight:600; }
+  header a:hover{ text-decoration:underline; }
+  main { position:relative; z-index:1; max-width:700px; margin:2em auto; padding:0 1.5em; }
+  section {
+    background:var(--surface); backdrop-filter:blur(12px); border:1px solid var(--border);
+    border-radius:16px; padding:1.6em 1.7em; margin-bottom:1.5em;
+    box-shadow:0 12px 40px -20px rgba(0,0,0,0.5);
+  }
+  h3 { margin-top:0; font-family:'Space Grotesk',sans-serif; font-weight:600; letter-spacing:-0.01em; }
+  label { display:block; font-size:0.85em; color:var(--muted); margin-top:0.9em; }
+  input, textarea, select {
+    width:100%; padding:0.65em 0.8em; border-radius:9px; border:1px solid var(--border);
+    background:var(--field); color:#fff; margin-top:0.35em; font-family:'Inter',sans-serif; outline:none;
+    transition:border-color 0.15s ease;
+  }
+  input:focus, textarea:focus, select:focus{ border-color:var(--accent-2); }
+  input[type="color"]{ padding:0.3em; height:2.6em; cursor:pointer; }
   textarea { resize:vertical; min-height:70px; }
-  button { padding:0.6em 1.2em; border:none; border-radius:8px; background:#7c3aed; color:#fff; font-weight:600; cursor:pointer; margin-top:1em; }
-  button.secondary { background:#2a2a36; }
-  .link-row { display:flex; gap:0.5em; align-items:center; margin-top:0.5em; }
-  .link-row span { flex:1; font-size:0.9em; color:#ccc; }
-  .link-row button { margin:0; padding:0.3em 0.7em; background:#3a1d1d; color:#f87171; }
-  .msg { font-size:0.85em; color:#4ade80; min-height:1.2em; }
-  .preview-link { display:block; margin-top:0.5em; color:#06b6d4; }
+  button {
+    padding:0.65em 1.3em; border:none; border-radius:9px;
+    background:linear-gradient(135deg,var(--accent),#1a4fd6); color:#fff; font-weight:600; cursor:pointer;
+    margin-top:1em; font-family:'Inter',sans-serif; box-shadow:0 8px 22px -10px rgba(47,107,255,0.7);
+    transition:transform 0.15s ease;
+  }
+  button:hover{ transform:translateY(-1px); }
+  button.secondary { background:rgba(255,255,255,0.06); box-shadow:none; border:1px solid var(--border); }
+  .link-row { display:flex; gap:0.5em; align-items:center; margin-top:0.6em; }
+  .link-row span { flex:1; font-size:0.9em; color:#ccd3e3; }
+  .link-row button { margin:0; padding:0.35em 0.8em; background:rgba(248,113,113,0.12); color:var(--danger); box-shadow:none; border:1px solid rgba(248,113,113,0.25); }
+  .msg { font-size:0.85em; color:var(--success); min-height:1.2em; margin-top:0.4em; }
+  .preview-link { display:block; margin-top:0.5em; color:var(--accent-2); }
 </style>
 </head>
 <body>
@@ -68,7 +101,7 @@
 
   <section>
     <h3>Background media</h3>
-    <p style="color:#888;font-size:0.85em;">Upload an image or video. This only matters if Background type above is set to image/video.</p>
+    <p style="color:var(--muted);font-size:0.85em;">Upload an image or video. This only matters if Background type above is set to image/video.</p>
     <input type="file" id="bgFile" accept="image/*,video/*">
     <button id="uploadBg">Upload background</button>
     <div class="msg" id="bgMsg"></div>
@@ -87,7 +120,7 @@
     <div class="link-row">
       <input id="linkPlatform" placeholder="Platform (e.g. Twitter)" style="flex:1">
       <input id="linkUrl" placeholder="https://..." style="flex:2">
-      <button id="addLink" style="background:#7c3aed;color:#fff;">Add</button>
+      <button id="addLink">Add</button>
     </div>
   </section>
 </main>
@@ -102,7 +135,7 @@ async function loadMe() {
   me = data.user;
   document.getElementById('display_name').value = me.display_name || '';
   document.getElementById('bio').value = me.bio || '';
-  document.getElementById('accent_color').value = me.accent_color || '#7c3aed';
+  document.getElementById('accent_color').value = me.accent_color || '#2f6bff';
   document.getElementById('cursor_effect').value = me.cursor_effect || 'trail';
   document.getElementById('background_type').value = me.background_type || 'particles';
   document.getElementById('discord_id').value = me.discord_id || '';
