@@ -4,25 +4,78 @@
 <meta charset="UTF-8">
 <title>profile</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   * { box-sizing:border-box; }
-  html,body { margin:0; height:100%; font-family:'Segoe UI',sans-serif; background:#000; color:#fff; overflow-x:hidden; }
-  #bgVideo, #bgImage { position:fixed; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:-2; filter:brightness(0.55); }
-  #particleCanvas { position:fixed; top:0; left:0; width:100%; height:100%; z-index:-2; background:#06060c; }
-  #overlay { position:fixed; inset:0; background:rgba(0,0,0,0.25); z-index:-1; }
-  .card { max-width:420px; margin:8vh auto; padding:2em; text-align:center; backdrop-filter:blur(10px); background:rgba(20,20,30,0.55); border-radius:20px; border:1px solid rgba(255,255,255,0.08); }
-  .avatar { width:96px; height:96px; border-radius:50%; object-fit:cover; border:3px solid var(--accent,#7c3aed); box-shadow:0 0 30px var(--accent,#7c3aed); }
-  h1 { margin:0.5em 0 0.1em; font-size:1.6em; }
-  .bio { color:#ddd; font-size:0.95em; margin-bottom:1em; }
-  .views { font-size:0.75em; color:#999; }
-  .links { display:flex; flex-direction:column; gap:0.6em; margin-top:1.2em; }
-  .links a { display:block; padding:0.7em; border-radius:10px; background:rgba(255,255,255,0.07); color:#fff; text-decoration:none; border:1px solid rgba(255,255,255,0.1); transition:background 0.2s; }
-  .links a:hover { background:var(--accent,#7c3aed); }
-  .discord { margin-top:1em; padding:0.8em; border-radius:12px; background:rgba(255,255,255,0.06); font-size:0.85em; text-align:left; display:flex; gap:0.6em; align-items:center; }
-  .dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
-  .musicBtn { position:fixed; bottom:20px; right:20px; width:50px; height:50px; border-radius:50%; background:rgba(0,0,0,0.6); border:1px solid rgba(255,255,255,0.2); color:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:5; font-size:1.2em; }
-  #cursorDot { position:fixed; width:18px; height:18px; border-radius:50%; pointer-events:none; z-index:99; transform:translate(-50%,-50%); mix-blend-mode:screen; transition:width 0.15s, height 0.15s; }
-  .not-found { text-align:center; margin-top:20vh; color:#888; }
+  html,body { margin:0; height:100%; font-family:'Inter',sans-serif; background:#000; color:#fff; overflow-x:hidden; }
+  #bgVideo, #bgImage { position:fixed; top:0; left:0; width:100%; height:100%; object-fit:cover; z-index:-2; filter:brightness(0.5) saturate(1.1); }
+  #particleCanvas { position:fixed; top:0; left:0; width:100%; height:100%; z-index:-2; background:#03050a; }
+  #overlay { position:fixed; inset:0; background:radial-gradient(ellipse at 50% 30%, transparent 0%, rgba(0,0,0,0.35) 100%); z-index:-1; }
+
+  .card {
+    max-width:420px; margin:8vh auto; padding:2.4em 2em; text-align:center;
+    backdrop-filter:blur(14px); background:rgba(10,14,26,0.58);
+    border-radius:22px; border:1px solid rgba(110,168,255,0.18);
+    position:relative; overflow:hidden;
+    box-shadow:0 0 0 1px rgba(110,168,255,0.05), 0 30px 80px -30px rgba(0,0,0,0.7);
+    animation:cardIn 0.5s ease both;
+  }
+  @keyframes cardIn{ from{ opacity:0; transform:translateY(14px) scale(0.98); } to{ opacity:1; transform:none; } }
+
+  /* signature: slow light sweep across the top border */
+  .card::before{
+    content:''; position:absolute; top:0; left:-40%; width:40%; height:2px;
+    background:linear-gradient(90deg, transparent, var(--accent,#2f6bff), transparent);
+    animation:sweep 4.5s linear infinite;
+  }
+  @keyframes sweep{ 0%{ left:-40%; } 100%{ left:100%; } }
+
+  .avatar-wrap{ position:relative; display:inline-block; }
+  .avatar {
+    width:96px; height:96px; border-radius:50%; object-fit:cover;
+    border:3px solid var(--accent,#2f6bff);
+  }
+  .avatar-wrap::after{
+    content:''; position:absolute; inset:-6px; border-radius:50%;
+    border:1px solid var(--accent,#2f6bff); opacity:0.5;
+    animation:pulseRing 2.6s ease-out infinite;
+  }
+  @keyframes pulseRing{
+    0%{ transform:scale(0.92); opacity:0.6; }
+    70%{ transform:scale(1.18); opacity:0; }
+    100%{ opacity:0; }
+  }
+
+  h1 { margin:0.55em 0 0.15em; font-family:'Space Grotesk',sans-serif; font-weight:700; font-size:1.55em; letter-spacing:-0.01em; }
+  .bio { color:#c7cede; font-size:0.95em; margin-bottom:1em; line-height:1.5; }
+  .views { font-size:0.75em; color:#7c8aa8; letter-spacing:0.02em; }
+  .links { display:flex; flex-direction:column; gap:0.6em; margin-top:1.3em; }
+  .links a {
+    display:block; padding:0.75em; border-radius:11px; background:rgba(255,255,255,0.05);
+    color:#fff; text-decoration:none; border:1px solid rgba(110,168,255,0.14);
+    transition:background 0.2s ease, border-color 0.2s ease, transform 0.15s ease; font-weight:500;
+  }
+  .links a:hover { background:var(--accent,#2f6bff); border-color:var(--accent,#2f6bff); transform:translateY(-1px); }
+
+  .discord {
+    margin-top:1.1em; padding:0.85em 1em; border-radius:13px; background:rgba(255,255,255,0.05);
+    border:1px solid rgba(110,168,255,0.14); font-size:0.85em; text-align:left; display:flex; gap:0.7em; align-items:center;
+  }
+  .dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; box-shadow:0 0 8px currentColor; }
+  .musicBtn {
+    position:fixed; bottom:20px; right:20px; width:50px; height:50px; border-radius:50%;
+    background:rgba(6,9,18,0.7); border:1px solid rgba(110,168,255,0.3); color:#fff;
+    display:flex; align-items:center; justify-content:center; cursor:pointer; z-index:5; font-size:1.1em;
+    backdrop-filter:blur(8px); transition:border-color 0.2s ease;
+  }
+  .musicBtn:hover{ border-color:var(--accent,#2f6bff); }
+  #cursorDot {
+    position:fixed; width:18px; height:18px; border-radius:50%; pointer-events:none; z-index:99;
+    transform:translate(-50%,-50%); mix-blend-mode:screen; transition:width 0.15s, height 0.15s;
+    box-shadow:0 0 16px 2px var(--accent,#2f6bff);
+  }
+  .not-found { text-align:center; margin-top:20vh; color:#7c8aa8; font-family:'Space Grotesk',sans-serif; }
 </style>
 </head>
 <body>
@@ -50,7 +103,7 @@ async function init() {
   }
   const { user, links } = await res.json();
   document.title = (user.display_name || user.username) + ' — biolink';
-  document.documentElement.style.setProperty('--accent', user.accent_color || '#7c3aed');
+  document.documentElement.style.setProperty('--accent', user.accent_color || '#2f6bff');
 
   setupBackground(user);
   setupCursor(user.cursor_effect);
@@ -65,7 +118,7 @@ async function init() {
 
   document.getElementById('content').innerHTML = `
     <div class="card">
-      ${user.avatar_url ? `<img class="avatar" src="${user.avatar_url}">` : ''}
+      ${user.avatar_url ? `<div class="avatar-wrap"><img class="avatar" src="${user.avatar_url}"></div>` : ''}
       <h1>${escapeHtml(user.display_name || user.username)}</h1>
       ${user.bio ? `<div class="bio">${escapeHtml(user.bio)}</div>` : ''}
       <div class="views">${user.view_count} views</div>
@@ -86,9 +139,9 @@ async function loadDiscord(discordId) {
     const statusColors = { online:'#3ba55c', idle:'#faa61a', dnd:'#ed4245', offline:'#747f8d' };
     const color = statusColors[data.discord_status] || statusColors.offline;
     const activity = data.activities?.find(a => a.type !== 4)?.name;
-    el.innerHTML = `<div class="dot" style="background:${color}"></div>
+    el.innerHTML = `<div class="dot" style="background:${color};color:${color}"></div>
       <div><strong>${escapeHtml(data.discord_user.username)}</strong><br>
-      <span style="color:#aaa;">${activity ? 'Playing ' + escapeHtml(activity) : data.discord_status}</span></div>`;
+      <span style="color:#9aa5bd;">${activity ? 'Playing ' + escapeHtml(activity) : data.discord_status}</span></div>`;
   } catch (e) {
     const el = document.getElementById('discordWidget');
     if (el) el.style.display = 'none';
@@ -109,7 +162,7 @@ function setupBackground(user) {
     image.style.display = 'block';
     canvas.style.display = 'none';
   } else {
-    runParticles(canvas, user.accent_color || '#7c3aed');
+    runParticles(canvas, user.accent_color || '#2f6bff');
   }
 }
 
@@ -135,7 +188,7 @@ function runParticles(canvas, accent) {
 
   function tick() {
     ctx.clearRect(0, 0, w, h);
-    ctx.fillStyle = '#06060c';
+    ctx.fillStyle = '#03050a';
     ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = accent;
     particles.forEach(p => {
@@ -156,7 +209,7 @@ function setupCursor(effect) {
   if (effect === 'none' || !effect) return;
   const dot = document.createElement('div');
   dot.id = 'cursorDot';
-  dot.style.background = 'var(--accent,#7c3aed)';
+  dot.style.background = 'var(--accent,#2f6bff)';
   document.body.appendChild(dot);
 
   if (effect === 'dot') {
@@ -170,7 +223,6 @@ function setupCursor(effect) {
       trail.push({x: e.clientX, y: e.clientY, life: 1});
     });
     function animateTrail() {
-      // reuse dot as head, spawn ghost divs sparingly
       if (trail.length) {
         const last = trail[trail.length - 1];
         dot.style.left = last.x + 'px';
